@@ -6,7 +6,7 @@ Created on Wed Jan 30 12:51:24 2019
 """
 
 from PMG.read_data import PMGDataset
-from PMG.COM.get_props import get_peaks
+from PMG.COM.get_props import *
 import json
 import pandas as pd
 
@@ -53,8 +53,16 @@ dataset.preprocessing = preprocessing
 if __name__=='__main__':
     dataset.get_data(['timeseries'])
     table = dataset.table
+    
     features = get_peaks(dataset.timeseries)
     
+#    i_to_t = get_i_to_t(dataset.t)
+#    feature_funs = {'Min_': [get_min],
+#                    'Max_': [get_max],
+#                    'Tmin_': [get_argmin,i_to_t]} 
+#    features = pd.concat(dataset.timeseries.chdata.get_features(feature_funs).values(), axis=1, sort=True)
+    
+
     faro_data = ['HF_POS','SEAT_Y','SEAT_TRACK','SEATBACK_ANGLE','PELVIS_ANGLE','HEAD_CG_Y']
     features[faro_data] = dataset.table[faro_data]
     features['HEAD_CG_Y-SEAT_Y'] = features['HEAD_CG_Y'] - features['SEAT_Y']

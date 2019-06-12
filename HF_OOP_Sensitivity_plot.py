@@ -15,7 +15,37 @@ from PMG.COM.arrange import arrange_by_group
 from initialize import dataset
 
 dataset.get_data(['features', 'stats'])
+
+
 dataset.get_data(['timeseries'])
+
+#%% get angles from faro points
+from read_faro_points import faro_points
+for i in ['x','y','z']:
+    faro_points[['_'.join((p, i)) for p in ['104','103','404']]] = faro_points[['_'.join((p, i)) for p in ['104','103','404']]].sub(faro_points['103_'+i], axis=0)
+    faro_points[['_'.join((p, i)) for p in ['108','107','403']]] = faro_points[['_'.join((p, i)) for p in ['108','107','403']]].sub(faro_points['107_'+i], axis=0)
+
+def get_angle(u, v):
+    num = np.sum(u.values*v.values, axis=1)
+    denom = np.sqrt(np.sum(u.values**2, axis=1))*np.sqrt(np.sum(v.values**2, axis=1))
+    ratio = num/denom
+    return np.degrees(np.arccos(ratio))
+    
+angle_left = get_angle(faro_points[['104_x','104_z']], faro_points[['404_x','404_z']])
+angle_right = get_angle(faro_points[['108_x','108_z']], faro_points[['403_x','403_z']])
+
+dataset.features['left_leg_angle'] = angle_left
+dataset.features['right_leg_angle'] = angle_right
+dataset.features['left_leg_dx'] = faro_points['404_x'] - faro_points['104_x']
+dataset.features['right_leg_dx'] = faro_points['403_x'] - faro_points['108_x']
+dataset.features['dx_pelvis'] = faro_points['403_x'] - faro_points['404_x']
+dataset.features['dz_chin_to_belt'] = (faro_points['96_z'] - faro_points['1023_x']).abs()
+
+
+dataset.features['Min_13FEMRxx00HFFOZB'] = dataset.features[['Min_13FEMRLE00HFFOZB','Min_13FEMRRI00HFFOZB']].min(axis=1)
+dataset.features['Max_13FEMRxx00HFFOZB'] = dataset.features[['Max_13FEMRLE00HFFOZB','Max_13FEMRRI00HFFOZB']].max(axis=1)
+femur_peak = dataset.features[['Min_13FEMRxx00HFFOZB','Max_13FEMRxx00HFFOZB']].abs().idxmax(axis=1)
+
 
 #%% get statistically significant differences in features
 sig_ch = condense_df(pd.concat(dataset.stats.values(), axis=1))
@@ -60,45 +90,29 @@ plot_channels = ['Max_13HEAD0000HFACYA',
                  'Min_13FEMRRI00HFFOZB',
                  'Min_13ILACLE00HFFOXA',
                  'Max_13NIJCIPTEHF00YX',
-                 'Max_13NIJCIPTFHF00YX',
-                 'Min_13RIBS01LEHFDSXB',
-                 'Min_13RIBS01RIHFDSXB',
-                 'Min_13RIBS02LEHFDSXB',
-                 'Min_13RIBS02RIHFDSXB',
-                 'Min_13RIBS03LEHFDSXB',
-                 'Min_13RIBS03RIHFDSXB',
-                 'Min_13RIBS04LEHFDSXB',
-                 'Min_13RIBS04RIHFDSXB',
-                 'Min_13RIBS05LEHFDSXB', 
-                 'Min_13RIBS05RIHFDSXB',
-                 'Min_13RIBS06LEHFDSXB',
-                 'Min_13RIBS06RIHFDSXB']
+                 'Max_13NIJCIPTFHF00YX']
 for ch in plot_channels:
     fig, ax = plt.subplots()
-    ax = sns.barplot(x='HF_POS', y=ch, data=pd.concat((dataset.features[ch].abs(), dataset.table['HF_POS']), axis=1))
+    ax = sns.barplot(x='HF_POS', y=ch, ci='sd', data=pd.concat((dataset.features[ch].abs(), dataset.table['HF_POS']), axis=1))
     ax = set_labels(ax, {'title': ch})
     plt.show()
     plt.close(fig)
 
 
-#%% plot peak values as a function of installation stuff
-chx_list = ['SEATBACK_ANGLE',
-            'SLOUCH',
-            'PELVIS_ANGLE',
-            'HEAD_CG_Y-SEAT_Y']
-chy_list = ['Min_13HEAD0000HFACXA',
-            'Min_13NECKUP00HFFOXA',
-            'Max_13HEAD0000HFACYA',
-            'Max_13ILACLE00HFFOXA',
-            'Min_13FEMRLE00HFFOZB']
+#%% regression
+chx_list = ['Min_13FEMRLE00HFFOZB',
+            'Max_13FEMRLE00HFFOZB',
+            'Min_13FEMRRI00HFFOZB',
+            'Max_13FEMRRI00HFFOZB',
+            'Min_13FEMRxx00HFFOZB',
+            'Max_13FEMRxx00HFFOZB',
+            'Peak_13FEMRxx00HFFOZB']
+chy_list = ['Min_13CHST0000HFDSXB']
 
-subset = dataset.table.query('YEAR==2019')
-subset['SLOUCH'] = subset['SLOUCH'].replace(np.nan, 0)
-dataset.features['SLOUCH'] = dataset.features['SLOUCH'].replace(np.nan, 0)
 for chx in chx_list:
     for chy in chy_list:
-        x = arrange_by_group(subset, dataset.features[chx], 'SLOUCH')
-        y = arrange_by_group(subset, dataset.features[chy], 'SLOUCH')
+        x = arrange_by_group(dataset.table.drop('TC08-109'), dataset.features[chx], 'HF_POS')
+        y = arrange_by_group(dataset.table.drop('TC08-109'), dataset.features[chy], 'HF_POS')
         
         fig, ax = plt.subplots()
         ax = plot_scatter(ax, x, y)
@@ -106,19 +120,3 @@ for chx in chx_list:
         
         plt.show()
         plt.close(fig)
-        
-#%% plot overlays (paired)
-plot_channels = dataset.channels
-
-grouped = dataset.table.groupby('HF_POS')
-pairs = np.intersect1d(grouped.get_group('OOP')['MODEL'],grouped.get_group('STD')['MODEL'])
-for ch in plot_channels:
-    for pair in pairs:
-        subset = dataset.table.query('MODEL==\'' + pair + '\'')
-        x = arrange_by_group(subset, dataset.timeseries[ch], 'HF_POS')
-        fig, ax = plt.subplots()
-        ax = plot_overlay(ax, dataset.t, x)
-        set_labels(ax, {'title': (pair,ch), 'legend': {}})
-        plt.show()
-        plt.close(fig)
-    
