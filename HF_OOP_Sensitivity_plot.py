@@ -13,11 +13,12 @@ import plotly_express as px
 from PMG.COM.plotfuns import *
 from PMG.COM.arrange import arrange_by_group
 from initialize import dataset
+from PMG.COM.helper import r2, corr, rho
 
 dataset.get_data(['features', 'stats'])
 
 
-dataset.get_data(['timeseries'])
+#dataset.get_data(['timeseries'])
 
 #%% get angles from faro points
 from read_faro_points import faro_points
@@ -100,23 +101,22 @@ for ch in plot_channels:
 
 
 #%% regression
-chx_list = ['Min_13FEMRLE00HFFOZB',
-            'Max_13FEMRLE00HFFOZB',
-            'Min_13FEMRRI00HFFOZB',
-            'Max_13FEMRRI00HFFOZB',
-            'Min_13FEMRxx00HFFOZB',
-            'Max_13FEMRxx00HFFOZB',
-            'Peak_13FEMRxx00HFFOZB']
-chy_list = ['Min_13CHST0000HFDSXB']
+chx_list = dataset.features.columns
+chy_list = ['PELVIS_ANGLE']
 
 for chx in chx_list:
+    if dataset.features[chx].dtype=='object': continue
     for chy in chy_list:
+        if chx==chy: continue
+        if dataset.features[chy].dtype=='object': continue
         x = arrange_by_group(dataset.table.drop('TC08-109'), dataset.features[chx], 'HF_POS')
         y = arrange_by_group(dataset.table.drop('TC08-109'), dataset.features[chy], 'HF_POS')
         
+#        if abs(rho(dataset.features[chx],dataset.features[chy]))<0.3:
+#            continue
         fig, ax = plt.subplots()
         ax = plot_scatter(ax, x, y)
-        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy})
+        ax = set_labels(ax, {'xlabel': chx, 'ylabel': chy, 'legend': {}})
         
         plt.show()
         plt.close(fig)
