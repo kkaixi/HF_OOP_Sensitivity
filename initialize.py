@@ -63,9 +63,9 @@ if __name__=='__main__':
 #    features = pd.concat(dataset.timeseries.chdata.get_features(feature_funs).values(), axis=1, sort=True)
     
 
-    faro_data = ['HF_POS','SEAT_Y','SEAT_TRACK','SEATBACK_ANGLE','PELVIS_ANGLE','HEAD_CG_Y']
-    features[faro_data] = dataset.table[faro_data]
-    features['HEAD_CG_Y-SEAT_Y'] = features['HEAD_CG_Y'] - features['SEAT_Y']
+#    faro_data = ['HF_POS','SEAT_Y','SEAT_TRACK','SEATBACK_ANGLE','PELVIS_ANGLE','HEAD_CG_Y']
+#    features[faro_data] = dataset.table[faro_data]
+#    features['HEAD_CG_Y-SEAT_Y'] = features['HEAD_CG_Y'] - features['SEAT_Y']
     
     features.to_csv(directory + 'features.csv')
     
@@ -76,7 +76,9 @@ if __name__=='__main__':
                             'STD_2': dataset.table.query('HF_POS==2').index.tolist(),
                             'OOP': dataset.table.query('HF_POS==3').index.tolist(),
                             'STD_ALL': dataset.table.query('HF_POS<3').index.tolist(),
-                            'ALL': dataset.table.index.tolist()},
+                            'ALL': dataset.table.index.tolist(),
+                            'BELT_PEN': dataset.table.query('ABDOMEN_BELT_PENETRATION==\'YES\'').index.tolist(),
+                            'NO_BELT_PEN': dataset.table.query('ABDOMEN_BELT_PENETRATION==\'NO\'').index.tolist()},
                'test'    : [{'name': 'std_vs_oop_wilcox',
                              'test1': 'STD_ALL',
                              'test2': 'OOP',
@@ -125,14 +127,12 @@ if __name__=='__main__':
                              'testname': 't.test',
                              'data': 'features',
                              'args': 'paired=FALSE, exact=FALSE, correct=TRUE, conf.level=0.95'},
-                            {'name': 'hf_pos_aov',
-                             'test1': 'ALL',
-                             'variables': ['HF_POS'],
-                             'formula': 'HF_POS',
-                             'testname': 'aov',
+                            {'name': 'belt_pen_t',
+                             'test1': 'BELT_PEN',
+                             'test2': 'NO_BELT_PEN',
+                             'testname': 't.test',
                              'data': 'features',
-                             'model_args': None,
-                             'test_args': None}],
+                             'args': 'paired=FALSE, exact=FALSE, correct=TRUE, conf.level=0.95'}],
                 'test2'  : None}    
     
     for test in to_JSON['test']:
