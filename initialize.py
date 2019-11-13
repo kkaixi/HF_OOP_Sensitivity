@@ -42,7 +42,7 @@ channels = ['13HEAD0000HFACXA','13HEAD0000HFACYA','13HEAD0000HFACZA','13HEAD0000
             '13NIJCIPTEHF00YX', '13NIJCIPTFHF00YX', '13NIJCIPCFHF00YX', '13NIJCIPCEHF00YX',
             '13HEAD003SHFACRA', '13CHST003SHFACRC']
 
-table_filters = {'query': 'SPEED==48 and HF_POS>=1 and HF_POS<=3',
+table_filters = {'query': 'SPEED==48 and HF_POS>=1 and HF_POS<=3 and SEAT_TRACK==\'MID\'',
                  'drop': ['TC18-209']}
 preprocessing = None
 

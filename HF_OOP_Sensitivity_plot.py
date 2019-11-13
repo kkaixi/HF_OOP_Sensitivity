@@ -15,14 +15,14 @@ from PMG.COM.arrange import arrange_by_group
 from initialize import dataset
 from PMG.COM.helper import r2, corr, rho
 
-dataset.get_data(['features', 'stats'])
+dataset.get_data(['features'])
 
 
 #dataset.get_data(['timeseries'])
 
 #%% get angles from faro points
-from read_faro_points import faro_points
-faro_points.at['TC18-214',['101_y','102_y']] = np.nan
+from read_faro_points import faro_dictionary, all_faro
+#faro_points.at['TC18-214',['101_y','102_y']] = np.nan
 
 #%% get statistically significant differences in features
 sig_ch = condense_df(pd.concat(dataset.stats.values(), axis=1))
@@ -42,6 +42,8 @@ for ch in plot_channels:
     fig, ax = plt.subplots()
     x1 = arrange_by_group(dataset.table.query('HF_POS<3'), dataset.timeseries[ch], 'HF_POS')
     x2 = arrange_by_group(dataset.table.query('HF_POS==3'), dataset.timeseries[ch], 'MODEL')
+    if len(x1)==0 or len(x2)==0:
+        continue
     ax, lines = plot_bands(ax, dataset.t, x1, legend=False)
     ax = plot_overlay(ax, dataset.t, x2, line_specs={k: {'linewidth': 0.5} for k in x2.keys()})
 #    ax = plot_overlay(ax, dataset.t, x2, line_specs={k: {'linewidth': 0.5, 'color': 'b'} for k in x2.keys()})
@@ -78,6 +80,16 @@ for ch in plot_channels:
     plt.close(fig)
 
 
+#%% plot peak values as a scatter plot
+plot_channels = ['Max_13HEAD0000HFACZA',
+                 'Min_13LUSP0000HFFOZA',
+                 'Max_13NECKUP00HFFOZA']
+subset = dataset.table.query('HF_POS<3 or MODEL==\'MINI COOPER\' or MODEL==\'TRAX\'').index
+
+for ch in plot_channels:
+    fig, ax = plt.subplots()
+    data = pd.concat((dataset.table.loc[subset], dataset.features.loc[subset, ch]), axis=1)
+    ax = sns.stripplot(x='HF_POS', y=ch, ax=ax, data=data)
 #%% get subset
     
 #subset = dataset.table.query('SEATBACK_ANGLE>=0 and SEATBACK_ANGLE <22').index.drop([]) 
